@@ -1,40 +1,90 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
-
-
-class Item(BaseModel):
-    name: str
-    description: str | None = None
-    price: float
-    tax: float | None = None
-
+import random
+from fastapi import FastAPI, Query
+from typing import Annotated
+from pydantic import AfterValidator
 
 app = FastAPI()
 
+data = {
+    "isbn-9781529046137": "The Hitchhiker's Guide to the Galaxy",
+    "imdb-tt0371724": "The Hitchhiker's Guide to the Galaxy",
+    "isbn-9781439512982": "Isaac Asimov: The Complete Stories, Vol. 2",
+}
 
+
+def check_valid_id(id: str):
+    if not id.startswith(("isbn-", "imdb-")):
+        raise ValueError('Invalid ID format, it must start with "isbn-" or "imdb-"')
+    return id
+
+
+"""
 @app.get("/items/")
-async def get_items():
-    return {"message": "Hello World"}
-
-
-"""
-@app.post("/items/")
-async def create_item(item: Item):
-    return item
+async def read_items(q: str | None = None):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
 """
 
 
+# async def read_items(q: Annotated[str | None, Query(max_length=10)] = None):
 """
-@app.post("/items/")
-async def create_item(item: Item):
-    item_dict = item.dict()
-    if item.tax is not None:
-        price_with_tax = item.price + item.tax
-        item_dict.update({"price_with_tax": price_with_tax})
-    return item_dict
+async def read_items(
+    q: Annotated[str | None, Query(min_length=3, max_length=50)] = None,
+):
 """
-
-
-@app.put("/items/{item_id}")
-async def update_item(item_id: int, item: Item):
-    return {"item_id": item_id, **item.dict()}
+"""
+async def read_items(
+    q: Annotated[
+        str | None, Query(min_length=3, max_length=50, pattern="^fixedquery$")
+    ] = None,
+):
+"""
+# async def read_items(q: Annotated[str, Query(min_length=3)] = "fixedquery"):
+# async def read_items(q: Annotated[str, Query(min_length=3)]):
+# async def read_items(q: Annotated[list[str] | None, Query()] = None):
+#async def read_items(q: Annotated[list[str], Query()] = ["foo", "bar"]):
+# async def read_items(q: Annotated[list, Query()] = []):
+"""
+async def read_items(
+    q: Annotated[str | None, Query(title="Query string", min_length=3)] = None,
+):
+"""
+"""
+async def read_items(
+    q: Annotated[
+        str | None,
+        Query(
+            title="Query string",
+            description="Query string for the items to search in the database that have a good match",
+            min_length=3,
+        ),
+    ] = None,
+):
+"""
+#async def read_items(q: Annotated[str | None, Query(alias="item-query")] = None):
+"""
+async def read_items(
+    q: Annotated[
+        str | None,
+        Query(
+            alias="item-query",
+            title="Query string",
+            description="Query string for the items to search in the database that have a good match",
+            min_length=3,
+            max_length=50,
+            pattern="^fixedquery$",
+            deprecated=True,
+        ),
+    ] = None,
+):
+"""
+@app.get("/items/")
+async def read_items(
+    id: Annotated[str | None, AfterValidator(check_valid_id)] = None,
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
